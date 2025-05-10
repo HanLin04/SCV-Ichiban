@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel Admin - Ichiban Ramen</title>
+  <style>
+    body {
+      background-image: url('https://raw.githubusercontent.com/HanLin04/Photo2/main/IMG_4850.JPG');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      font-family: sans-serif;
+      color: white;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      text-shadow: 1px 1px 4px black;
+    }
+
+    #turnoActual {
+      font-size: 3rem;
+      margin: 1rem 0;
+    }
+
+    button {
+      font-size: 1.2rem;
+      margin: 0.5rem;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 10px;
+      background-color: #e91e63;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #c2185b;
+    }
+
+    #timer {
+      font-size: 1.5rem;
+      margin-top: 1rem;
+      color: #ffeb3b;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 2rem;
+    }
+
+    li {
+      background: rgba(0, 0, 0, 0.5);
+      margin: 0.5rem 0;
+      padding: 1rem;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .delete-btn {
+      background: #d32f2f;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+    }
+
+    .delete-btn:hover {
+      background-color: #b71c1c;
+    }
+  </style>
+</head>
+<body>
+  <h1>Panel de Administrador - Ichiban Ramen</h1>
+
+  <p>Turno actual:</p>
+  <div id="turnoActual">0</div>
+
+  <button onclick="llamarSiguiente()">Llamar siguiente turno</button>
+  <button onclick="eliminarTodos()">Eliminar todos los turnos</button>
+  <div id="timer"></div>
+
+  <h2>Lista de turnos</h2>
+  <ul id="turnList"></ul>
+
+  <script>
+    function llamarSiguiente() {
+      let current = parseInt(localStorage.getItem("current") || "0");
+      current++;
+      localStorage.setItem("current", current);
+      localStorage.setItem("countdown_" + current, Date.now() + 5 * 60 * 1000); // sincronización
+      document.getElementById("turnoActual").textContent = current;
+      iniciarTemporizador(300); // 5 minutos
+      localStorage.removeItem("vibrationNotified");
+      actualizarLista();
+    }
+
+    function eliminarTodos() {
+      localStorage.removeItem("queue");
+      localStorage.removeItem("myNumber");
+      localStorage.removeItem("current");
+
+      for (let key in localStorage) {
+        if (key.startsWith("cliente_") || key.startsWith("countdown_")) {
+          localStorage.removeItem(key);
+        }
+      }
+
+      document.getElementById("turnoActual").textContent = "0";
+      document.getElementById("timer").textContent = "";
+      actualizarLista();
+    }
+
+    function eliminarTurno(num) {
+      let queue = JSON.parse(localStorage.getItem("queue") || "[]");
+      queue = queue.filter(n => n !== num);
+      localStorage.setItem("queue", JSON.stringify(queue));
+      localStorage.removeItem("cliente_" + num);
+      localStorage.removeItem("countdown_" + num);
+      actualizarLista();
+    }
+
+    function iniciarTemporizador(segundos) {
+      const timerEl = document.getElementById("timer");
+      clearInterval(window.temporizador);
+
+      function actualizar() {
+        let min = Math.floor(segundos / 60);
+        let seg = segundos % 60;
+        timerEl.textContent = `⏱️ Tiempo restante: ${min}:${seg.toString().padStart(2, '0')}`;
+        if (segundos === 0) {
+          clearInterval(window.temporizador);
+          timerEl.textContent = "⏱️ Tiempo finalizado.";
+        } else {
+          segundos--;
+        }
+      }
+
+      actualizar();
+      window.temporizador = setInterval(actualizar, 1000);
+    }
+
+    function actualizarLista() {
+      const lista = document.getElementById("turnList");
+      lista.innerHTML = "";
+      const queue = JSON.parse(localStorage.getItem("queue") || "[]");
+
+      queue.forEach(num => {
+        const cliente = JSON.parse(localStorage.getItem("cliente_" + num) || '{}');
+        const li = document.createElement("li");
+        li.textContent = `#${num} - ${cliente.nombre || "Sin nombre"} (${cliente.telefono || ""})`;
+
+        const btn = document.createElement("button");
+        btn.textContent = "Eliminar";
+        btn.className = "delete-btn";
+        btn.onclick = () => eliminarTurno(num);
+
+        li.appendChild(btn);
+        lista.appendChild(li);
+      });
+    }
+
+    document.getElementById("turnoActual").textContent = localStorage.getItem("current") || "0";
+    actualizarLista();
+  </script>
+</body>
+</html>
