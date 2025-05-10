@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ichiban Ramen - Turnos</title>
+  <style>
+    body {
+      background-image: url('https://raw.githubusercontent.com/HanLin04/ichiban-assets/main/IMG_4822.JPG');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      font-family: sans-serif;
+      color: white;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .header {
+      margin-bottom: 2rem;
+    }
+
+    .header h1 {
+      font-size: 3rem;
+      margin: 0;
+    }
+
+    .header h3 {
+      font-size: 1.5rem;
+      margin-top: 0.2rem;
+      font-weight: normal;
+    }
+
+    .form-section {
+      background-color: rgba(0, 0, 0, 0.6);
+      padding: 1.5rem;
+      border-radius: 12px;
+      max-width: 420px;
+      margin: auto;
+    }
+
+    input, select {
+      width: 90%;
+      padding: 0.8rem;
+      margin: 0.6rem 0;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+    }
+
+    button {
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #e91e63;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #c2185b;
+    }
+
+    .lang-selector {
+      margin-bottom: 1rem;
+    }
+
+    #timer {
+      font-size: 2rem;
+      margin-top: 1rem;
+      color: yellow;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        font-size: 1.2rem;
+      }
+
+      .header h1 {
+        font-size: 2.2rem;
+      }
+
+      .header h3 {
+        font-size: 1.2rem;
+      }
+
+      button {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>いちばんラーメン</h1>
+    <h3>Ichiban Ramen</h3>
+  </div>
+
+  <h3 id="title">Gestión de turnos</h3>
+
+  <div class="lang-selector">
+    <label for="langSelect" id="languageLabel">Idioma:</label>
+    <select id="langSelect" onchange="changeLang(this.value)">
+      <option value="es">Español</option>
+      <option value="en">English</option>
+      <option value="ca">Català</option>
+    </select>
+  </div>
+
+  <div class="form-section">
+    <label for="nombre" id="nameLabel">Nombre completo</label>
+    <input type="text" id="nombre" placeholder="Nombre completo" required>
+
+    <label for="telefono" id="phoneLabel">Teléfono</label>
+    <input type="tel" id="telefono" placeholder="Número de teléfono" required>
+
+    <label for="personas" id="peopleLabel">Número de personas</label>
+    <select id="personas">
+      <option value="">Selecciona</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6 o más</option>
+    </select>
+
+    <button onclick="getNumber()" id="getTurnBtn">¡Coja su turno!</button>
+  </div>
+
+  <h2 id="myNumberDisplay"></h2>
+  <p id="status"></p>
+  <div id="timer" style="display: none;">05:00</div>
+
+  <script>
+    const translations = {
+      es: {
+        title: "Gestión de turnos",
+        languageLabel: "Idioma:",
+        nameLabel: "Nombre completo",
+        phoneLabel: "Teléfono",
+        peopleLabel: "Número de personas",
+        getTurnBtn: "¡Coja su turno!",
+        expired: "Su turno ha pasado.",
+        wait: num => `En espera... Turno actual: ${num}`,
+        yourTurn: "¡Ya es su turno! Por favor, acérquese rápido.",
+        alertFill: "Por favor, complete todos los campos.",
+        duplicatePhone: "Este teléfono ya tiene un turno.",
+        yourNumber: num => `Su número: ${num}`
+      },
+      en: {
+        title: "Queue Management",
+        languageLabel: "Language:",
+        nameLabel: "Full Name",
+        phoneLabel: "Phone",
+        peopleLabel: "Number of people",
+        getTurnBtn: "Get Your Turn",
+        expired: "Your turn has passed.",
+        wait: num => `Waiting... Current turn: ${num}`,
+        yourTurn: "It's your turn! Please come forward.",
+        alertFill: "Please complete all fields.",
+        duplicatePhone: "This phone number already has a turn.",
+        yourNumber: num => `Your number: ${num}`
+      },
+      ca: {
+        title: "Gestió de torns",
+        languageLabel: "Idioma:",
+        nameLabel: "Nom complet",
+        phoneLabel: "Telèfon",
+        peopleLabel: "Nombre de persones",
+        getTurnBtn: "Agafa el teu torn",
+        expired: "El teu torn ha passat.",
+        wait: num => `Esperant... Torn actual: ${num}`,
+        yourTurn: "És el teu torn! Apropa't si us plau.",
+        alertFill: "Si us plau, omple tots els camps.",
+        duplicatePhone: "Aquest telèfon ja té un torn.",
+        yourNumber: num => `El teu número: ${num}`
+      }
+    };
+
+    let lang = localStorage.getItem("lang") || "es";
+    const t = () => translations[lang];
+    let myNumber = localStorage.getItem("myNumber");
+    let countdownInterval;
+
+    function changeLang(newLang) {
+      lang = newLang;
+      localStorage.setItem("lang", lang);
+      document.getElementById("title").textContent = t().title;
+      document.getElementById("languageLabel").textContent = t().languageLabel;
+      document.getElementById("nameLabel").textContent = t().nameLabel;
+      document.getElementById("phoneLabel").textContent = t().phoneLabel;
+      document.getElementById("peopleLabel").textContent = t().peopleLabel;
+      document.getElementById("getTurnBtn").textContent = t().getTurnBtn;
+      displayNumber();
+    }
+
+    function getNumber() {
+      const nombre = document.getElementById("nombre").value.trim();
+      const telefono = document.getElementById("telefono").value.trim();
+      const personas = document.getElementById("personas").value;
+
+      if (!nombre || !telefono || !personas) {
+        alert(t().alertFill);
+        return;
+      }
+
+      const queue = JSON.parse(localStorage.getItem("queue") || "[]");
+
+      for (const num of queue) {
+        const data = JSON.parse(localStorage.getItem("cliente_" + num) || "{}");
+        if (data.telefono === telefono) {
+          alert(t().duplicatePhone);
+          return;
+        }
+      }
+
+      const newNumber = queue.length > 0 ? queue[queue.length - 1] + 1 : 1;
+      queue.push(newNumber);
+
+      const cliente = { nombre, telefono, personas };
+      localStorage.setItem("queue", JSON.stringify(queue));
+      localStorage.setItem("myNumber", newNumber);
+      localStorage.setItem("cliente_" + newNumber, JSON.stringify(cliente));
+
+      myNumber = newNumber;
+      displayNumber();
+    }
+
+    function displayNumber() {
+      if (myNumber) {
+        document.getElementById("myNumberDisplay").textContent = t().yourNumber(myNumber);
+      }
+    }
+
+    function startTimer(duration) {
+      clearInterval(countdownInterval);
+      let timer = duration;
+      const display = document.getElementById("timer");
+      display.style.display = "block";
+
+      countdownInterval = setInterval(() => {
+        const minutes = String(Math.floor(timer / 60)).padStart(2, '0');
+        const seconds = String(timer % 60).padStart(2, '0');
+        display.textContent = `${minutes}:${seconds}`;
+        if (--timer < 0) {
+          clearInterval(countdownInterval);
+          display.style.display = "none";
+        }
+      }, 1000);
+    }
+
+    async function checkStatus() {
+      const current = parseInt(localStorage.getItem("current") || "0");
+      if (myNumber) {
+        const myNum = parseInt(myNumber);
+        if (current === myNum) {
+          document.getElementById("status").textContent = t().yourTurn;
+          if (!localStorage.getItem("vibrationNotified")) {
+            if (navigator.vibrate) {
+              navigator.vibrate([300, 100, 300]);
+            }
+            startTimer(5 * 60);
+            localStorage.setItem("vibrationNotified", "true");
+          }
+        } else {
+          document.getElementById("status").textContent =
+            current > myNum ? t().expired : t().wait(current);
+          document.getElementById("timer").style.display = "none";
+          localStorage.removeItem("vibrationNotified");
+        }
+      }
+    }
+
+    changeLang(lang);
+    setInterval(checkStatus, 3000);
+  </script>
+</body>
+</html>
